@@ -15,7 +15,7 @@ This repository contains a simple Lisp interpreter written in Zig. It is designe
     - Arithmetic operations: +, -, *, /, mod
     - Comparison operations: =, <=, >=
     - Logical operations: and
-    - Conditional branching: if
+    - Conditional branching: if, cond
     - Variable definition and assignment: define, set!
     - Loops: while
     - Output: print
@@ -36,23 +36,20 @@ Here's an example of a FizzBuzz implementation in Lisp, which the interpreter ca
 
 ```lisp
 (define i 1)
-
 (while (<= i 100)
-    (if (and (= (mod i 3) 0) (= (mod i 5) 0))
-        (print "FizzBuzz")
-        (if (= (mod i 3) 0)
-            (print "Fizz")
-            (if (= (mod i 5) 0)
-                (print "Buzz")
-                (print i))))
-    (set! i (+ i 1)))
+    (cond
+        (and (= (mod i 3) 0) (= (mod i 5) 0)) (print "FizzBuzz")
+        (= (mod i 3) 0)                       (print "Fizz")
+        (= (mod i 5) 0)                       (print "Buzz")
+        #t                                    (print i))
+
 ```
 
 ## Compatibility
 
 This project has been tested and confirmed to work on the following environment:
 - Zig 0.14.0-dev.2178+bd7dda0c5
-- Gentoo Linux 6.6 (x86_64)
+- Gentoo Linux 6.6.32 (x86_64)
 
 ## Getting Started
 
