@@ -42,14 +42,17 @@ Here's an example of a FizzBuzz implementation in Lisp, which the interpreter ca
         (= (mod i 3) 0)                       (print "Fizz")
         (= (mod i 5) 0)                       (print "Buzz")
         #t                                    (print i))
-
+    (set! i (+ i 1)))
 ```
+
 
 ## Compatibility
 
 This project has been tested and confirmed to work on the following environment:
 - Zig 0.14.0-dev.2178+bd7dda0c5
 - Gentoo Linux 6.6.32 (x86_64)
+
+This project has been tested on Gentoo Linux. While it should work on other Linux distributions, macOS, and Windows, these platforms have not been thoroughly tested.
 
 ## Getting Started
 
@@ -87,15 +90,9 @@ Run a Lisp script:
 
 ## Acknowledgments
 Inspired by the simplicity and elegance of Lisp and the modern design of Zig.
-Thanks to the Zig and Lisp communities for their support and resources.
+Thanks to the Zig and Lisp hackers for their support and resources.
 
-
-
-
-
-
-
-
-
+## License
+This project is licensed under the MIT License. Copyright (c) 2024 Kei Sawamura a.k.a. keix
 
 
