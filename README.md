@@ -79,15 +79,6 @@ Run a Lisp script:
 ./zig-out/bin/lisp script/fizzbuzz.lisp
 ```
 
-## Development Notes
-- Memory Management:
-    - Implements a custom allocator to manage memory for Lisp objects.
-    - Detects memory leaks and cleans up allocated resources.
-
-- Extensibility:
-    - Add new built-in functions by modifying the builtins array.
-    - Extend the LispValue union to include more data types as needed.
-
 ## Acknowledgments
 Inspired by the simplicity and elegance of Lisp and the modern design of Zig.
 Thanks to the Zig and Lisp hackers for their support and resources.
