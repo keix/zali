@@ -42,9 +42,6 @@ const builtins = [_]Builtin{
     .{ .name = "set!", .func = evalSet, .min_args = 2 },
     .{ .name = "while", .func = evalWhile, .min_args = 2 },
     .{ .name = "print", .func = evalPrint, .min_args = 1 },
-    .{ .name = "cons", .func = evalCons, .min_args = 2 },
-    .{ .name = "car", .func = evalCar, .min_args = 1 },
-    .{ .name = "cdr", .func = evalCdr, .min_args = 1 },
 };
 
 const BuiltinFn = *const fn ([]const LispValue, *Environment) EvalError!LispValue;
@@ -58,10 +55,6 @@ const Builtin = struct {
 const LispValue = union(enum) {
     Atom: Atom,
     List: ArrayList(LispValue),
-    Cons: struct {
-        car: *LispValue,
-        cdr: *LispValue,
-    },
 
     pub fn deinit(self: *LispValue, allocator: Allocator) void {
         switch (self.*) {
@@ -70,12 +63,6 @@ const LispValue = union(enum) {
                     item.deinit(allocator);
                 }
                 list.deinit();
-            },
-            .Cons => |cons| {
-                cons.car.deinit(allocator);
-                cons.cdr.deinit(allocator);
-                allocator.destroy(cons.car);
-                allocator.destroy(cons.cdr);
             },
             .Atom => {},
         }
@@ -106,10 +93,6 @@ const LispValue = union(enum) {
                     try writer.print("{}", .{item});
                 }
                 try writer.writeByte(')');
-            },
-            .Cons => |cons| {
-                try writer.writeByte('(');
-                try writer.print("{} . {})", .{ cons.car.*, cons.cdr.* });
             },
         }
     }
@@ -290,21 +273,6 @@ fn makeList(allocator: Allocator, items: []LispValue) !LispValue {
     return LispValue{ .List = list.* };
 }
 
-fn makeCons(allocator: Allocator, car: LispValue, cdr: LispValue) !LispValue {
-    const car_ptr = try allocator.create(LispValue);
-    errdefer allocator.destroy(car_ptr);
-    const cdr_ptr = try allocator.create(LispValue);
-    errdefer allocator.destroy(cdr_ptr);
-
-    car_ptr.* = car;
-    cdr_ptr.* = cdr;
-
-    return LispValue{ .Cons = .{
-        .car = car_ptr,
-        .cdr = cdr_ptr,
-    } };
-}
-
 pub fn clone(allocator: Allocator, value: LispValue) !LispValue {
     return switch (value) {
         .Atom => value,
@@ -315,11 +283,6 @@ pub fn clone(allocator: Allocator, value: LispValue) !LispValue {
                 try new_list.append(cloned_item);
             }
             return LispValue{ .List = new_list };
-        },
-        .Cons => |cons| {
-            const car_copy = try clone(allocator, cons.car.*);
-            const cdr_copy = try clone(allocator, cons.cdr.*);
-            return try makeCons(allocator, car_copy, cdr_copy);
         },
     };
 }
@@ -357,12 +320,6 @@ fn eval(value: LispValue, env: *Environment) EvalError!LispValue {
                 }
             }
             return EvalError.UnknownSymbol;
-        },
-        .Cons => |cons| {
-            const evaluated_car = try eval(cons.car.*, env);
-            const evaluated_cdr = try eval(cons.cdr.*, env);
-
-            return try makeCons(env.allocator, evaluated_car, evaluated_cdr);
         },
     }
 }
@@ -566,40 +523,6 @@ fn evalPrint(args: []const LispValue, env: *Environment) EvalError!LispValue {
     std.debug.print("\n", .{});
 
     return try clone(env.allocator, value);
-}
-
-fn evalCons(args: []const LispValue, env: *Environment) EvalError!LispValue {
-    if (args.len != 2) return EvalError.InvalidArgument;
-
-    const car = try eval(args[0], env);
-    const cdr = try eval(args[1], env);
-
-    return try makeCons(env.allocator, car, cdr);
-
-}
-
-fn evalCar(args: []const LispValue, env: *Environment) EvalError!LispValue {
-    if (args.len != 1) return EvalError.InvalidArgument;
-
-    var value = try eval(args[0], env);
-    defer value.deinit(env.allocator);
-
-    if (value != .Cons) {
-        return EvalError.TypeError;
-    }
-    return try clone(env.allocator, value.Cons.car.*);
-}
-
-fn evalCdr(args: []const LispValue, env: *Environment) EvalError!LispValue {
-    if (args.len != 1) return EvalError.InvalidArgument;
-
-    var value = try eval(args[0], env);
-    defer value.deinit(env.allocator);
-
-    if (value != .Cons) {
-        return EvalError.TypeError;
-    }
-    return try clone(env.allocator, value.Cons.cdr.*);
 }
 
 pub fn main() !void {
