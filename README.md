@@ -4,7 +4,7 @@ This repository contains a simple Lisp interpreter written in Zig. It is designe
 ## Features
 - Basic Lisp Data Types:
     - Atom types: Numbers, Symbols, Strings, and Booleans
-    - List types: Standard Lisp lists and cons cells
+    - List types: Standard Lisp lists
 
 - Parsing:
     - Parses input strings into an Abstract Syntax Tree (AST)
@@ -19,7 +19,6 @@ This repository contains a simple Lisp interpreter written in Zig. It is designe
     - Variable definition and assignment: define, set!
     - Loops: while
     - Output: print
-    - List operations: cons, car, cdr
 
 - Environment and Scope:
     - Supports variable management and name resolution
