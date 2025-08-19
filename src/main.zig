@@ -32,18 +32,23 @@ const builtins = [_]Builtin{
     .{ .name = "*", .func = evalMul, .min_args = 1 },
     .{ .name = "/", .func = evalDiv, .min_args = 1 },
     .{ .name = "=", .func = evalEqual, .min_args = 2 },
+    .{ .name = "<", .func = evalLess, .min_args = 2 },
     .{ .name = "<=", .func = evalLessEqual, .min_args = 2 },
+    .{ .name = ">", .func = evalGreater, .min_args = 2 },
     .{ .name = ">=", .func = evalGreaterEqual, .min_args = 2 },
     .{ .name = "mod", .func = evalMod, .min_args = 2 },
     .{ .name = "and", .func = evalAnd, .min_args = 2 },
     .{ .name = "if", .func = evalIf, .min_args = 3 },
-    .{ .name = "cond", .func = evalCond, .min_args = 2 },
+    .{ .name = "cond", .func = evalCond, .min_args = 1 },
     .{ .name = "define", .func = evalDefine, .min_args = 2 },
     .{ .name = "set!", .func = evalSet, .min_args = 2 },
     .{ .name = "while", .func = evalWhile, .min_args = 2 },
     .{ .name = "print", .func = evalPrint, .min_args = 1 },
     .{ .name = "quote", .func = evalQuote, .min_args = 1 },
     .{ .name = "eval", .func = evalEval, .min_args = 1 },
+    .{ .name = "cons", .func = evalCons, .min_args = 2 },
+    .{ .name = "car", .func = evalCar, .min_args = 1 },
+    .{ .name = "cdr", .func = evalCdr, .min_args = 1 },
 };
 
 const BuiltinFn = *const fn ([]const LispValue, *Environment) EvalError!LispValue;
@@ -133,12 +138,12 @@ const Environment = struct {
     }
 
     pub fn set(self: *Environment, name: []const u8, value: LispValue) !void {
-        if (self.vars.getPtr(name)) |old_value| {
+        const value_copy = try clone(self.allocator, value);
+
+        if (try self.vars.fetchPut(name, value_copy)) |old_entry| {
+            var old_value = old_entry.value;
             old_value.deinit(self.allocator);
         }
-
-        const value_copy = try clone(self.allocator, value);
-        try self.vars.put(name, value_copy);
     }
 };
 
@@ -265,11 +270,11 @@ const Parser = struct {
     fn parseQuote(self: *Parser) ParserError!LispValue {
         self.pos += 1; // Skip '
         const expr = try self.parse();
-        
+
         var list = ArrayList(LispValue).init(self.allocator);
         try list.append(LispValue{ .Atom = Atom{ .Symbol = "quote" } });
         try list.append(expr);
-        
+
         return LispValue{ .List = list };
     }
 };
@@ -417,7 +422,15 @@ fn evalDiv(args: []const LispValue, env: *Environment) EvalError!LispValue {
 fn evalMod(args: []const LispValue, env: *Environment) EvalError!LispValue {
     if (args.len != 2) return EvalError.InvalidArgument;
     const a = try eval(args[0], env);
+    defer {
+        var a_mut = a;
+        a_mut.deinit(env.allocator);
+    }
     const b = try eval(args[1], env);
+    defer {
+        var b_mut = b;
+        b_mut.deinit(env.allocator);
+    }
     if (a != .Atom or a.Atom != .Number or b != .Atom or b.Atom != .Number) {
         return EvalError.TypeError;
     }
@@ -431,27 +444,87 @@ fn evalMod(args: []const LispValue, env: *Environment) EvalError!LispValue {
 fn evalEqual(args: []const LispValue, env: *Environment) EvalError!LispValue {
     if (args.len != 2) return EvalError.InvalidArgument;
     const a = try eval(args[0], env);
+    defer {
+        var a_mut = a;
+        a_mut.deinit(env.allocator);
+    }
     const b = try eval(args[1], env);
+    defer {
+        var b_mut = b;
+        b_mut.deinit(env.allocator);
+    }
     if (a != .Atom or a.Atom != .Number or b != .Atom or b.Atom != .Number) {
         return EvalError.TypeError;
     }
     return LispValue{ .Atom = .{ .Boolean = a.Atom.Number == b.Atom.Number } };
 }
 
+fn evalLess(args: []const LispValue, env: *Environment) EvalError!LispValue {
+    if (args.len != 2) return EvalError.InvalidArgument;
+    const a = try eval(args[0], env);
+    defer {
+        var a_mut = a;
+        a_mut.deinit(env.allocator);
+    }
+    const b = try eval(args[1], env);
+    defer {
+        var b_mut = b;
+        b_mut.deinit(env.allocator);
+    }
+    if (a != .Atom or a.Atom != .Number or b != .Atom or b.Atom != .Number) {
+        return EvalError.TypeError;
+    }
+    return LispValue{ .Atom = .{ .Boolean = a.Atom.Number < b.Atom.Number } };
+}
+
 fn evalLessEqual(args: []const LispValue, env: *Environment) EvalError!LispValue {
     if (args.len != 2) return EvalError.InvalidArgument;
     const a = try eval(args[0], env);
+    defer {
+        var a_mut = a;
+        a_mut.deinit(env.allocator);
+    }
     const b = try eval(args[1], env);
+    defer {
+        var b_mut = b;
+        b_mut.deinit(env.allocator);
+    }
     if (a != .Atom or a.Atom != .Number or b != .Atom or b.Atom != .Number) {
         return EvalError.TypeError;
     }
     return LispValue{ .Atom = .{ .Boolean = a.Atom.Number <= b.Atom.Number } };
 }
 
+fn evalGreater(args: []const LispValue, env: *Environment) EvalError!LispValue {
+    if (args.len != 2) return EvalError.InvalidArgument;
+    const a = try eval(args[0], env);
+    defer {
+        var a_mut = a;
+        a_mut.deinit(env.allocator);
+    }
+    const b = try eval(args[1], env);
+    defer {
+        var b_mut = b;
+        b_mut.deinit(env.allocator);
+    }
+    if (a != .Atom or a.Atom != .Number or b != .Atom or b.Atom != .Number) {
+        return EvalError.TypeError;
+    }
+    return LispValue{ .Atom = .{ .Boolean = a.Atom.Number > b.Atom.Number } };
+}
+
 fn evalGreaterEqual(args: []const LispValue, env: *Environment) EvalError!LispValue {
     if (args.len != 2) return EvalError.InvalidArgument;
     const a = try eval(args[0], env);
+    defer {
+        var a_mut = a;
+        a_mut.deinit(env.allocator);
+    }
     const b = try eval(args[1], env);
+    defer {
+        var b_mut = b;
+        b_mut.deinit(env.allocator);
+    }
     if (a != .Atom or a.Atom != .Number or b != .Atom or b.Atom != .Number) {
         return EvalError.TypeError;
     }
@@ -461,6 +534,10 @@ fn evalGreaterEqual(args: []const LispValue, env: *Environment) EvalError!LispVa
 fn evalAnd(args: []const LispValue, env: *Environment) EvalError!LispValue {
     for (args) |arg| {
         const val = try eval(arg, env);
+        defer {
+            var val_mut = val;
+            val_mut.deinit(env.allocator);
+        }
         if (val != .Atom or val.Atom != .Boolean) {
             return EvalError.TypeError;
         }
@@ -474,6 +551,10 @@ fn evalAnd(args: []const LispValue, env: *Environment) EvalError!LispValue {
 fn evalIf(args: []const LispValue, env: *Environment) EvalError!LispValue {
     if (args.len != 3) return EvalError.InvalidArgument;
     const condition = try eval(args[0], env);
+    defer {
+        var cond_mut = condition;
+        cond_mut.deinit(env.allocator);
+    }
     if (condition != .Atom or condition.Atom != .Boolean) {
         return EvalError.TypeError;
     }
@@ -484,16 +565,24 @@ fn evalIf(args: []const LispValue, env: *Environment) EvalError!LispValue {
 }
 
 fn evalCond(args: []const LispValue, env: *Environment) EvalError!LispValue {
-    for (0..args.len / 2) |i| {
-        const condition = try eval(args[i * 2], env);
+    for (args) |clause| {
+        if (clause != .List or clause.List.items.len != 2) {
+            return EvalError.InvalidArgument;
+        }
+        const condition = try eval(clause.List.items[0], env);
+        defer {
+            var cond_mut = condition;
+            cond_mut.deinit(env.allocator);
+        }
         if (condition != .Atom or condition.Atom != .Boolean) {
             return EvalError.TypeError;
         }
         if (condition.Atom.Boolean) {
-            return try eval(args[i * 2 + 1], env);
+            return try eval(clause.List.items[1], env);
         }
     }
-    return LispValue{ .Atom = .{ .Boolean = false } };
+    // No condition was true
+    return LispValue{ .Atom = .{ .Symbol = "nil" } };
 }
 
 fn evalDefine(args: []const LispValue, env: *Environment) EvalError!LispValue {
@@ -503,8 +592,13 @@ fn evalDefine(args: []const LispValue, env: *Environment) EvalError!LispValue {
     }
     const name = args[0].Atom.Symbol;
     const value = try eval(args[1], env);
+    // env.set will clone the value, so we need to return a clone too
+    const result = try clone(env.allocator, value);
     try env.set(name, value);
-    return value;
+    // Clean up the original value since env.set cloned it
+    var value_mut = value;
+    value_mut.deinit(env.allocator);
+    return result;
 }
 
 fn evalSet(args: []const LispValue, env: *Environment) EvalError!LispValue {
@@ -514,21 +608,31 @@ fn evalSet(args: []const LispValue, env: *Environment) EvalError!LispValue {
     }
     const name = args[0].Atom.Symbol;
     const value = try eval(args[1], env);
+    // env.set will clone the value, so we need to return a clone too
+    const result = try clone(env.allocator, value);
     try env.set(name, value);
-    return value;
+    // Clean up the original value since env.set cloned it
+    var value_mut = value;
+    value_mut.deinit(env.allocator);
+    return result;
 }
 
 fn evalWhile(args: []const LispValue, env: *Environment) EvalError!LispValue {
     if (args.len < 2) return EvalError.InvalidArgument;
     while (true) {
         const condition = try eval(args[0], env);
+        defer {
+            var cond_mut = condition;
+            cond_mut.deinit(env.allocator);
+        }
         if (condition != .Atom or condition.Atom != .Boolean) {
             return EvalError.TypeError;
         }
         if (!condition.Atom.Boolean) break;
 
         for (args[1..]) |body| {
-            _ = try eval(body, env);
+            var result = try eval(body, env);
+            result.deinit(env.allocator);
         }
     }
     return LispValue{ .Atom = .{ .Number = 0 } };
@@ -558,19 +662,130 @@ fn evalQuote(args: []const LispValue, env: *Environment) EvalError!LispValue {
 
 fn evalEval(args: []const LispValue, env: *Environment) EvalError!LispValue {
     if (args.len < 1 or args.len > 2) return EvalError.InvalidArgument;
-    
+
     const expr = try eval(args[0], env);
-    defer {
-        var expr_mut = expr;
-        expr_mut.deinit(env.allocator);
-    }
+    // Don't defer cleanup of expr - pass ownership to the recursive eval
     
     if (args.len == 2) {
         // eval with custom environment (not supported yet)
-        return try eval(expr, env);
+        const result = eval(expr, env) catch |err| {
+            var expr_mut = expr;
+            expr_mut.deinit(env.allocator);
+            return err;
+        };
+        // Clean up expr after successful eval
+        var expr_mut = expr;
+        expr_mut.deinit(env.allocator);
+        return result;
     } else {
-        return try eval(expr, env);
+        const result = eval(expr, env) catch |err| {
+            var expr_mut = expr;
+            expr_mut.deinit(env.allocator);
+            return err;
+        };
+        // Clean up expr after successful eval
+        var expr_mut = expr;
+        expr_mut.deinit(env.allocator);
+        return result;
     }
+}
+
+fn evalCons(args: []const LispValue, env: *Environment) EvalError!LispValue {
+    if (args.len != 2) return EvalError.InvalidArgument;
+
+    const first = try eval(args[0], env);
+    errdefer {
+        var first_mut = first;
+        first_mut.deinit(env.allocator);
+    }
+    
+    const second = try eval(args[1], env);
+    errdefer {
+        var second_mut = second;
+        second_mut.deinit(env.allocator);
+    }
+
+    var list = ArrayList(LispValue).init(env.allocator);
+    errdefer {
+        for (list.items) |*item| {
+            item.deinit(env.allocator);
+        }
+        list.deinit();
+    }
+    
+    // Clone first value into list
+    try list.append(try clone(env.allocator, first));
+
+    // If second is a list, clone all its elements
+    if (second == .List) {
+        for (second.List.items) |item| {
+            try list.append(try clone(env.allocator, item));
+        }
+    } else {
+        // If second is not a list, just append it (improper list)
+        try list.append(try clone(env.allocator, second));
+    }
+    
+    // Clean up the temporary values
+    var first_mut = first;
+    first_mut.deinit(env.allocator);
+    var second_mut = second;
+    second_mut.deinit(env.allocator);
+
+    return LispValue{ .List = list };
+}
+
+fn evalCar(args: []const LispValue, env: *Environment) EvalError!LispValue {
+    if (args.len != 1) return EvalError.InvalidArgument;
+
+    const list = try eval(args[0], env);
+    defer {
+        var list_mut = list;
+        list_mut.deinit(env.allocator);
+    }
+
+    if (list != .List) {
+        return EvalError.TypeError;
+    }
+
+    if (list.List.items.len == 0) {
+        return EvalError.InvalidArgument;
+    }
+
+    // Clone the first item before cleaning up the list
+    return try clone(env.allocator, list.List.items[0]);
+}
+
+fn evalCdr(args: []const LispValue, env: *Environment) EvalError!LispValue {
+    if (args.len != 1) return EvalError.InvalidArgument;
+
+    const list = try eval(args[0], env);
+    defer {
+        var list_mut = list;
+        list_mut.deinit(env.allocator);
+    }
+
+    if (list != .List) {
+        return EvalError.TypeError;
+    }
+
+    if (list.List.items.len == 0) {
+        return EvalError.InvalidArgument;
+    }
+
+    var new_list = ArrayList(LispValue).init(env.allocator);
+    errdefer {
+        for (new_list.items) |*item| {
+            item.deinit(env.allocator);
+        }
+        new_list.deinit();
+    }
+    
+    for (list.List.items[1..]) |item| {
+        try new_list.append(try clone(env.allocator, item));
+    }
+
+    return LispValue{ .List = new_list };
 }
 
 pub fn main() !void {
@@ -605,9 +820,9 @@ pub fn main() !void {
             error.UnexpectedEOF => break,
             else => return err,
         };
+        defer expr.deinit(allocator);
 
         var result = try eval(expr, &global_env);
-        result.deinit(allocator);
-        expr.deinit(allocator);
+        defer result.deinit(allocator);
     }
 }
