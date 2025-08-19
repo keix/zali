@@ -48,6 +48,28 @@ Here's an example of a FizzBuzz implementation in Lisp, which the interpreter ca
     (set! i (+ i 1)))
 ```
 
+### Lisp Scripts
+ZALI was tested with the following scripts.
+
+- collatz.lisp 
+- cons-test.lisp 
+- factorial.lisp 
+- fibonacci.lisp 
+- fizzbuzz.lisp
+- list-demo.lisp
+- list-test.lisp
+- nested-list.lisp
+- recursive-list.lisp
+- safe-collatz.lisp
+- safe-recursive-list.lisp
+- simple-fibonacci.lisp
+- simple-math.lisp
+- test.lisp
+
+```
+for i in `scripts/` do ./zig-out/bin/zali scripts/$i; done
+```
+
 ## Getting Started
 
 Prerequisites
