@@ -1,5 +1,8 @@
-# Zig-Allocated Lisp Interpreter a.k.a Zali
-This repository contains a simple Lisp interpreter written in Zig. It is designed to demonstrate core Lisp concepts and serve as a learning tool for both Lisp and Zig programming. This implementation supports basic Lisp functionality, making it an excellent starting point for exploring both languages.
+# ZALI — Zig-Allocated Lisp Interpreter
+ZALI is a small Lisp interpreter written in Zig. It has no garbage collector: every heap allocation is explicitly tracked and deterministically freed. Ownership and responsibility are made clear — this is the way of ZALI.
+
+## Dependencies
+- Zig compiler 0.14.1+
 
 ## Features
 - Basic Lisp Data Types:
@@ -70,8 +73,7 @@ Run a Lisp script:
 ```
 
 ## Acknowledgments
-Inspired by the simplicity and elegance of Lisp and the modern design of Zig.
-Thanks to the Zig and Lisp hackers for their support and resources.
+Respect to the elegance of Lisp and the modern design of Zig. Thanks to the Zig and Lisp communities for their tools and insights.
 
 ## License
 This project is licensed under the MIT License. Copyright (c) 2024 Kei Sawamura a.k.a. keix
