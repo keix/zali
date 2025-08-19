@@ -42,6 +42,8 @@ const builtins = [_]Builtin{
     .{ .name = "set!", .func = evalSet, .min_args = 2 },
     .{ .name = "while", .func = evalWhile, .min_args = 2 },
     .{ .name = "print", .func = evalPrint, .min_args = 1 },
+    .{ .name = "quote", .func = evalQuote, .min_args = 1 },
+    .{ .name = "eval", .func = evalEval, .min_args = 1 },
 };
 
 const BuiltinFn = *const fn ([]const LispValue, *Environment) EvalError!LispValue;
@@ -163,13 +165,23 @@ const Parser = struct {
             '(' => return self.parseList(),
             '"' => return self.parseString(),
             '0'...'9' => return self.parseAtom(),
+            '\'' => return self.parseQuote(),
             else => return self.parseAtom(),
         }
     }
 
     fn skipSpace(self: *Parser) void {
-        while (self.pos < self.input.len and std.ascii.isWhitespace(self.input[self.pos])) {
-            self.pos += 1;
+        while (self.pos < self.input.len) {
+            if (std.ascii.isWhitespace(self.input[self.pos])) {
+                self.pos += 1;
+            } else if (self.input[self.pos] == ';') {
+                // Skip comment until end of line
+                while (self.pos < self.input.len and self.input[self.pos] != '\n') {
+                    self.pos += 1;
+                }
+            } else {
+                break;
+            }
         }
     }
 
@@ -243,7 +255,22 @@ const Parser = struct {
         if (std.mem.eql(u8, symbol, "#f")) {
             return LispValue{ .Atom = .{ .Boolean = false } };
         }
+        // Handle #'+ notation as just +
+        if (symbol.len >= 2 and std.mem.eql(u8, symbol[0..2], "#'")) {
+            return LispValue{ .Atom = Atom{ .Symbol = symbol[2..] } };
+        }
         return LispValue{ .Atom = Atom{ .Symbol = symbol } };
+    }
+
+    fn parseQuote(self: *Parser) ParserError!LispValue {
+        self.pos += 1; // Skip '
+        const expr = try self.parse();
+        
+        var list = ArrayList(LispValue).init(self.allocator);
+        try list.append(LispValue{ .Atom = Atom{ .Symbol = "quote" } });
+        try list.append(expr);
+        
+        return LispValue{ .List = list };
     }
 };
 
@@ -509,8 +536,7 @@ fn evalWhile(args: []const LispValue, env: *Environment) EvalError!LispValue {
 
 fn evalPrint(args: []const LispValue, env: *Environment) EvalError!LispValue {
     if (args.len != 1) return EvalError.InvalidArgument;
-    var value = try eval(args[0], env);
-    defer value.deinit(env.allocator);
+    const value = try eval(args[0], env);
 
     if (value == .Atom and value.Atom == .String) {
         std.debug.print("{s}", .{value.Atom.String});
@@ -522,7 +548,29 @@ fn evalPrint(args: []const LispValue, env: *Environment) EvalError!LispValue {
     }
     std.debug.print("\n", .{});
 
-    return try clone(env.allocator, value);
+    return value;
+}
+
+fn evalQuote(args: []const LispValue, env: *Environment) EvalError!LispValue {
+    if (args.len != 1) return EvalError.InvalidArgument;
+    return try clone(env.allocator, args[0]);
+}
+
+fn evalEval(args: []const LispValue, env: *Environment) EvalError!LispValue {
+    if (args.len < 1 or args.len > 2) return EvalError.InvalidArgument;
+    
+    const expr = try eval(args[0], env);
+    defer {
+        var expr_mut = expr;
+        expr_mut.deinit(env.allocator);
+    }
+    
+    if (args.len == 2) {
+        // eval with custom environment (not supported yet)
+        return try eval(expr, env);
+    } else {
+        return try eval(expr, env);
+    }
 }
 
 pub fn main() !void {
