@@ -1,4 +1,4 @@
-# Tiny Lisp Interpreter in Zig
+# ZALI is Zig-Allocated Lisp Interpreter
 This repository contains a simple Lisp interpreter written in Zig. It is designed to demonstrate core Lisp concepts and serve as a learning tool for both Lisp and Zig programming. This implementation supports basic Lisp functionality, making it an excellent starting point for exploring both languages.
 
 ## Features
@@ -44,26 +44,17 @@ Here's an example of a FizzBuzz implementation in Lisp, which the interpreter ca
     (set! i (+ i 1)))
 ```
 
-
-## Compatibility
-
-This project has been tested and confirmed to work on the following environment:
-- Zig 0.14.0-dev.2178+bd7dda0c5
-- Gentoo Linux 6.6.32 (x86_64)
-
-This project has been tested on Gentoo Linux. While it should work on other Linux distributions, macOS, and Windows, these platforms have not been thoroughly tested.
-
 ## Getting Started
 
 Prerequisites
-- Zig Compiler version 0.13.0 or later
+- Zig Compiler version 0.14.1
 
 Build and Run
 - Clone the repository:
 
 ```bash
-git clone https://github.com/keix/tiny-lisp.git
-cd tiny-lisp
+git clone https://github.com/keix/zali.git
+cd zali
 ```
 
 Build the interpreter:
@@ -75,7 +66,7 @@ zig build
 Run a Lisp script:
 
 ```bash
-./zig-out/bin/lisp script/fizzbuzz.lisp
+./zig-out/bin/zali script/fizzbuzz.lisp
 ```
 
 ## Acknowledgments
