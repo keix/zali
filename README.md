@@ -33,6 +33,21 @@ ZALI is a small Lisp interpreter written in Zig. It has no garbage collector: ev
     - Evaluation errors (e.g., type errors, unknown symbols)
     - Meaningful error messages for debugging
 
+
+## Getting Started
+
+Prerequisites
+- Zig Compiler version 0.14.1
+
+Build and Run
+- Clone the repository:
+
+```bash
+git clone https://github.com/keix/zali.git
+zig build
+./zig-out/bin/zali script/fizzbuzz.lisp
+```
+
 ## Example Script
 
 Here's an example of a FizzBuzz implementation in Lisp, which the interpreter can evaluate:
@@ -49,50 +64,14 @@ Here's an example of a FizzBuzz implementation in Lisp, which the interpreter ca
 ```
 
 ### Lisp Scripts
-ZALI was tested with the following scripts.
+ZALI was tested with the following scripts:  
+- https://github.com/keix/zali/tree/main/scripts
 
-- collatz.lisp 
-- cons-test.lisp 
-- factorial.lisp 
-- fibonacci.lisp 
-- fizzbuzz.lisp
-- list-demo.lisp
-- list-test.lisp
-- nested-list.lisp
-- recursive-list.lisp
-- safe-collatz.lisp
-- safe-recursive-list.lisp
-- simple-fibonacci.lisp
-- simple-math.lisp
-- test.lisp
-
-```
-for i in `scripts/` do ./zig-out/bin/zali scripts/$i; done
-```
-
-## Getting Started
-
-Prerequisites
-- Zig Compiler version 0.14.1
-
-Build and Run
-- Clone the repository:
-
-```bash
-git clone https://github.com/keix/zali.git
-cd zali
-```
-
-Build the interpreter:
-
-```bash
-zig build
-```
-
-Run a Lisp script:
-
-```bash
-./zig-out/bin/zali script/fizzbuzz.lisp
+```zsh
+for i in `ls scripts/`                                                                                                                                                                                                                                                                                                ─╯
+do
+    ./zig-out/bin/zali scripts/$i
+done
 ```
 
 ## Acknowledgments
