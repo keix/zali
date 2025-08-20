@@ -1,5 +1,5 @@
-# ZALI — Zig-Allocated Lisp Interpreter
-ZALI is a small Lisp interpreter written in Zig. It has no garbage collector: every heap allocation is explicitly tracked and deterministically freed. Ownership and responsibility are made clear — this is the way of ZALI.
+# ZALI — Zig-Assembly Lisp Interpreter
+ZALI is a small Lisp interpreter written in Zig.
 
 ## Dependencies
 - Zig compiler 0.14.1+
